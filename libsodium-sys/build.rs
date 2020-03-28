@@ -309,32 +309,22 @@ fn is_release_profile() -> bool {
     env::var("PROFILE").unwrap() == "release"
 }
 
-#[cfg(all(target_env = "msvc", target_pointer_width = "32"))]
+#[cfg(windows)]
 fn get_lib_dir() -> PathBuf {
-    if is_release_profile() {
-        get_crate_dir().join("msvc/Win32/Release/v140/")
-    } else {
-        get_crate_dir().join("msvc/Win32/Debug/v140/")
-    }
-}
+    let target  = env::var("TARGET").unwrap();
+    let profile = env::var("PROFILE").unwrap();
 
-#[cfg(all(target_env = "msvc", target_pointer_width = "64"))]
-fn get_lib_dir() -> PathBuf {
-    if is_release_profile() {
-        get_crate_dir().join("msvc/x64/Release/v140/")
-    } else {
-        get_crate_dir().join("msvc/x64/Debug/v140/")
-    }
-}
+    let lib_dir = match (target.as_str(), profile.as_str()) {
+        ("x86_64-pc-windows-msvc", "release") => "msvc/x64/Release/v140",
+        ("x86_64-pc-windows-msvc", _        ) => "msvc/x64/Debug/v140",
+        ("i686-pc-windows-msvc"  , "release") => "msvc/Win32/Release/v140",
+        ("i686-pc-windows-msvc"  , _        ) => "msvc/Win32/Debug/v140",
+        ("x86_64-pc-windows-gnu" , _        ) => "mingw/win64",
+        ("i686-pc-windows-gnu"   , _        ) => "mingw/win32",
+        _ => panic!("unknown target {}", target),
+    };
 
-#[cfg(all(windows, not(target_env = "msvc"), target_pointer_width = "32"))]
-fn get_lib_dir() -> PathBuf {
-    get_crate_dir().join("mingw/win32/")
-}
-
-#[cfg(all(windows, not(target_env = "msvc"), target_pointer_width = "64"))]
-fn get_lib_dir() -> PathBuf {
-    get_crate_dir().join("mingw/win64/")
+    get_crate_dir().join(lib_dir)
 }
 
 fn build_libsodium() {
